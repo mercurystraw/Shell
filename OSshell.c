@@ -22,22 +22,22 @@ char *internalCommands[] = {"exit", "cd", "help", "echo", NULL}; // 内部命令
 
 
 // 函数声明，避免后面函数相互调用受到定义的先后顺序 影响
-const char* getusername();
-void get_host_name();
-void getpwd();
-void print_prompt();
-void get_command(char *cline, int size);
-int splitCline_getArgcv(char cline[], char *_argv[]);
-void runExternalCommands(char *_argv[]);
-bool isInternalCommands(char *_argv[]);
-void runInternalCommands(char *_argv[], int argc);
-void handle_basic_commands(char *_argv[], int argc);
-void handle_mayRedir_commands(char commands[]);
-void handle_single_pipe(char commands[]);
-void handle_multiple_pipe(char commands[]);
-int count_pipe(const char *commands);
-bool isRedir(char *commands); //判断指令参数是否含有重定向符号
-void handle_redirection(char *commands);
+const char* getusername();                               // 获取当前用户名
+void get_host_name();                                    // 获取主机名   
+void getpwd();                                           // 获取当前工作目录
+void print_prompt();                                     // 打印命令行提示符
+void get_command(char *cline, int size);                 // 从标准输入获取命令行
+int splitCline_getArgcv(char cline[], char *_argv[]);    // 分割命令行，存储命令参数并且返回参数个数
+void runExternalCommands(char *_argv[]);                 // 执行外部命令
+bool isInternalCommands(char *_argv[]);                  // 判断是否为内部命令
+void runInternalCommands(char *_argv[], int argc);       // 执行内部命令
+void handle_basic_commands(char *_argv[], int argc);     // 处理基本命令（外部和内部命令）
+void handle_mayRedir_commands(char commands[]);          // 处理可能带重定向的命令（即基本命令+重定向）
+void handle_single_pipe(char commands[]);                // 处理带单个管道命令
+void handle_multiple_pipe(char commands[]);              // 处理带多个管道命令
+int count_pipe(const char *commands);                    // 统计获取命令行中管道符的个数
+bool isRedir(char *commands);                            //判断传入的命令是否含有重定向符号
+void handle_redirection(char *commands);                 // 处理带有重定向符号的命令
 
 
 // 获取当前用户名
@@ -96,7 +96,7 @@ void runExternalCommands(char *_argv[]) {
         return;
     }
     if (pid == 0) { // 子进程执行命令
-        printf("内部指令运行，Child process executing command %s\n", _argv[0]);
+        //printf("内部指令运行，Child process executing command %s\n", _argv[0]);
         execvp(_argv[0], _argv); //execvp 会从系统的 PATH 环境变量指定的目录中查找 _argv[0] 命令并执行
         fprintf(stderr, "execvp error: Command not found or failed to execute: %s\n", _argv[0]);
         exit(EXIT_CODE); // 退出子进程
@@ -188,22 +188,22 @@ void handle_single_pipe(char commands[]){
     //这意味着当您查找 | 符号时，strtok 会在遇到第一个分隔符（如下空格）时将其替换为 \0，从而结束处理的字符串。
     //so commandline became ls instead of ls | wc -l
 
-    printf("handle_single_pipe\n");
-    printf("commands: %s\n", commands);
+    //printf("handle_single_pipe\n");
+    //printf("commands: %s\n", commands);
 
     int pipefd[2]; // 管道文件描述符
     pid_t pid;
     char *pipe_pos = strchr(commands, '|');
-    printf("pipe_pos: %d\n", *pipe_pos);
+    //printf("pipe_pos: %d\n", *pipe_pos);
 
     if(pipe_pos){
-        printf("pipe found\n");
+        //printf("pipe found\n");
         *pipe_pos = '\0'; // 将管道符号替换为字符串结束符，变成左右两个字符串
         char * left_command = commands;
         char * right_command = pipe_pos + 1;
 
-        printf("left_command: %s\n", left_command);
-        printf("right_command: %s\n", right_command);
+        //printf("left_command: %s\n", left_command);
+        //printf("right_command: %s\n", right_command);
     
         if(pipe(pipefd) < 0){
             perror("pipr error");
@@ -213,7 +213,7 @@ void handle_single_pipe(char commands[]){
         // 创建第一个子进程，执行左边命令
         if ((pid = fork()) == 0) {
             // 子进程执行左边命令
-            printf("child process execute left command\n");
+            //printf("child process execute left command\n");
             close(pipefd[0]); // 关闭读端
             dup2(pipefd[1], STDOUT_FILENO); // 将输出定向到管道的写入端
             close(pipefd[1]);
@@ -228,7 +228,7 @@ void handle_single_pipe(char commands[]){
         // 创建第二个子进程，执行右边命令
         if ((pid = fork()) == 0) {
             // 子进程执行右边命令
-            printf("child process execute right command\n");
+            //printf("child process execute right command\n");
             close(pipefd[1]); // 关闭写端
             dup2(pipefd[0], STDIN_FILENO); // 将输入定向到管道的读取端
             close(pipefd[0]);
@@ -248,23 +248,23 @@ void handle_single_pipe(char commands[]){
 }
 
 void handle_multiple_pipe(char commands[]){ //多重管道情况
-    printf("Handle_multiple_pipe\n");
-    printf("commands: %s\n", commands);
+    //printf("Handle_multiple_pipe\n");
+    //printf("commands: %s\n", commands);
 
     int pipefd[2]; // 管道文件描述符
     pid_t pid;
 
     char *pipe_pos = strchr(commands, '|');
-    printf("pipe_pos: %d\n", *pipe_pos);
+    //printf("pipe_pos: %d\n", *pipe_pos);
 
     if(pipe_pos){ // 管道符号存在
-        printf("pipe found\n");
+        //printf("pipe found\n");
         *pipe_pos = '\0'; // 将管道符号替换为字符串结束符，变成左右两个字符串
         char * left_command = commands;
         char * right_command = pipe_pos + 1;
 
-        printf("left_command: %s\n", left_command);
-        printf("right_command: %s\n", right_command);
+        //printf("left_command: %s\n", left_command);
+        //printf("right_command: %s\n", right_command);
     
         if(pipe(pipefd) < 0){
             perror("pipr error");
@@ -274,7 +274,7 @@ void handle_multiple_pipe(char commands[]){ //多重管道情况
         // 创建第一个子进程，执行左边命令
         if ((pid = fork()) == 0) {
             // 子进程执行左边命令
-            printf("child process execute left command\n");
+            //printf("child process execute left command\n");
             close(pipefd[0]); // 关闭读端
             dup2(pipefd[1], STDOUT_FILENO); // 将输出定向到管道的写入端
             close(pipefd[1]);
@@ -288,7 +288,7 @@ void handle_multiple_pipe(char commands[]){ //多重管道情况
 
         if((pid =fork())==0){ // 创建第二个子进程，执行右边命令
             // 子进程执行右边命令
-            printf("child process execute right command\n");
+            //printf("child process execute right command\n");
             close(pipefd[1]); // 关闭写端
             dup2(pipefd[0], STDIN_FILENO); // 将输入定向到管道的读取端
             close(pipefd[0]);
@@ -338,7 +338,7 @@ bool isRedir(char *commands){
 //由于带重定向的指令就只有ppt上的四种形式即：<,>,<>,><；<和>之间不存在其他command，除了管道|;
 //而管道的处理逻辑是会将多个命令分开为不带管道的单命令执行，所以重定向只需要考虑单条指令即可。
 void handle_redirection(char *commands) {
-    printf("处理重定向：Handle_redirection\n");
+    //printf("处理重定向：Handle_redirection\n");
     int inNum = 0, outNum = 0; // < 和 > 的个数
     pid_t pid;
 
@@ -358,9 +358,9 @@ void handle_redirection(char *commands) {
                 exit(EXIT_CODE);
             }
             char *outredir_pos = &commands[i];
-            printf("outredir_pos: %d\n", *outredir_pos);
+            //printf("outredir_pos: %d\n", *outredir_pos);
             char *out_file = strtok(outredir_pos + 1," \t"); //输出文件，并且使用strtok去除前面的空格，否则路径不正确
-            printf("out_file: %s\n", out_file);
+            //printf("out_file: %s\n", out_file);
 
             int fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, 0666); //写入方式（O_WRONLY），如果文件存在则清空其内容（O_TRUNC），如果文件不存在则创建（O_CREAT），权限设置为 0666。
             if(fd<0){
@@ -379,9 +379,9 @@ void handle_redirection(char *commands) {
                 exit(EXIT_CODE);
             }
             char *inredir_pos = &commands[i];
-            printf("inredir_pos: %d\n", *inredir_pos);
+            //printf("inredir_pos: %d\n", *inredir_pos);
             char *in_file = strtok(inredir_pos + 1," \t"); //输入文件
-            printf("in_file: %s\n", in_file);
+            //printf("in_file: %s\n", in_file);
 
             int fd = open(in_file, O_RDONLY); //只读模式打开文件
             if(fd<0){
@@ -396,21 +396,23 @@ void handle_redirection(char *commands) {
    }
 
 
-   printf("输入重定向数量：%d", inNum);
-   printf("输出重定向数量：%d", outNum);
+   //printf("输入重定向数量：%d", inNum);
+   //printf("输出重定向数量：%d", outNum);
    //处理最左边的命令
    char *left_command = commands;
-   printf("redir_left_command: %s\n", left_command);
+   //printf("redir_left_command: %s\n", left_command);
 
    if(pid=fork() == 0){  
         char *argv_left[ARGC_SIZE]; // 左边命令
         int argc_left = splitCline_getArgcv(left_command, argv_left); // 分割左边命令，存储argv并返回argc。
-        printf("Left command argc: %d\n", argc_left);
+
+        /*printf("Left command argc: %d\n", argc_left);
         printf("Left command: ");
         for (int i = 0; i < argc_left; i++) {
             printf("%s ", argv_left[i]); // 打印左边命令
         }
-        printf("\n");
+        printf("\n");*/
+
         handle_basic_commands(argv_left, argc_left); // 处理左边命令
         exit(EXIT_SUCCESS); // 退出子进程
    }
@@ -438,21 +440,21 @@ int main() {
         int argc = splitCline_getArgcv(commandline, argv); // 分割命令，存储agrv并返回argc。
         if (argc == 0) continue;       // 空命令直接跳过该轮循环
 
-        printf("commandline: %s\n", commandline);
+        //printf("commandline: %s\n", commandline);
 
         int pipe_count = count_pipe(commandline_copy); // 管道的个数
 
-        printf("管道数量为：%d\n", pipe_count);
+        //printf("管道数量为：%d\n", pipe_count);
         if(pipe_count == 1){
-            printf("管道数量为1，进入单管道情况\n");
+            //printf("管道数量为1，进入单管道情况\n");
             handle_single_pipe(commandline_copy); // 单管道情况
         }
         else if(pipe_count > 1){
-            printf("管道数量大于1，进入多管道情况\n");
+            //printf("管道数量大于1，进入多管道情况\n");
             handle_multiple_pipe(commandline_copy); // 多管道情况
         }
         else{
-            printf("没有管道；main function enter handle normal commands\n");
+            //printf("没有管道；main function enter handle normal commands\n");
             handle_mayRedir_commands(commandline_copy); // 处理内可能带有重定向的命令
         }
     }
