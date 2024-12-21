@@ -10,14 +10,13 @@
 
 #define LINE_SIZE 1024  // 命令行最大长度
 #define ARGC_SIZE 32    // 命令行参数个数最大个数
-#define EXIT_CODE 55    // 退出代码
+#define EXIT_CODE 55    // 设定的退出代码
 
 int lastcode = 0; // 最后执行命令的返回值
 char pwd[LINE_SIZE];          // 当前工作目录
 char hostname[64];            // 主机名
 char commandline[LINE_SIZE];  // 存放命令行
 char *argv[ARGC_SIZE];        // 存放命令行参数,字符指针数组
-char myenv[LINE_SIZE];        // 自定义环境变量
 char *internalCommands[] = {"exit", "cd", "help", "echo", NULL}; // 内部命令列表
 
 
@@ -58,7 +57,7 @@ void getpwd() {
 void print_prompt() {
     get_host_name();
     getpwd();
-    printf("\033[31m[%s@%s %s]$ \033[0m", getusername(), hostname, pwd);
+    printf("\033[31m%s@%s %s$ \033[0m", getusername(), hostname, pwd);
 }
 
 // 从标准输入获取命令行
@@ -215,7 +214,7 @@ void handle_single_pipe(char commands[]){
             // 子进程执行左边命令
             //printf("child process execute left command\n");
             close(pipefd[0]); // 关闭读端
-            dup2(pipefd[1], STDOUT_FILENO); // 将输出定向到管道的写入端
+            dup2(pipefd[1], STDOUT_FILENO); // 将管道写端文件描述符复制给标准输出
             close(pipefd[1]);
 
             handle_mayRedir_commands(left_command); // 处理左边命令
@@ -230,7 +229,7 @@ void handle_single_pipe(char commands[]){
             // 子进程执行右边命令
             //printf("child process execute right command\n");
             close(pipefd[1]); // 关闭写端
-            dup2(pipefd[0], STDIN_FILENO); // 将输入定向到管道的读取端
+            dup2(pipefd[0], STDIN_FILENO); // 将管道读端文件描述符复制给标准输入
             close(pipefd[0]);
 
             handle_mayRedir_commands(right_command); // 处理右边命令
@@ -276,7 +275,7 @@ void handle_multiple_pipe(char commands[]){ //多重管道情况
             // 子进程执行左边命令
             //printf("child process execute left command\n");
             close(pipefd[0]); // 关闭读端
-            dup2(pipefd[1], STDOUT_FILENO); // 将输出定向到管道的写入端
+            dup2(pipefd[1], STDOUT_FILENO); // 将管道写端文件描述符复制给标准输出
             close(pipefd[1]);
 
             handle_mayRedir_commands(left_command); // 处理左边命令
@@ -290,7 +289,7 @@ void handle_multiple_pipe(char commands[]){ //多重管道情况
             // 子进程执行右边命令
             //printf("child process execute right command\n");
             close(pipefd[1]); // 关闭写端
-            dup2(pipefd[0], STDIN_FILENO); // 将输入定向到管道的读取端
+            dup2(pipefd[0], STDIN_FILENO); // 将管道读端文件描述符复制给标准输入
             close(pipefd[0]);
 
             
@@ -341,7 +340,6 @@ void handle_redirection(char *commands) {
     //printf("处理重定向：Handle_redirection\n");
     int inNum = 0, outNum = 0; // < 和 > 的个数
     pid_t pid;
-
     //保存原始标准输入和标准输出
     int saved_stdin = dup(STDIN_FILENO);
     int saved_stdout = dup(STDOUT_FILENO);
@@ -362,7 +360,7 @@ void handle_redirection(char *commands) {
             char *out_file = strtok(outredir_pos + 1," \t"); //输出文件，并且使用strtok去除前面的空格，否则路径不正确
             //printf("out_file: %s\n", out_file);
 
-            int fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, 0666); //写入方式（O_WRONLY），如果文件存在则清空其内容（O_TRUNC），如果文件不存在则创建（O_CREAT），权限设置为 0666。
+            int fd = open(out_file, O_WRONLY | O_CREAT | O_TRUNC, 0666); //写入方式（O_WRONLY），覆盖方式（O_TRUNC），创建方式（O_CREAT），权限设置为 0666。
             if(fd<0){
                 perror("Output redirection error");
                 exit(EXIT_CODE);
