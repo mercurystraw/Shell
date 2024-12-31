@@ -1,1 +1,1 @@
-Related description and report will be updaded soon.
+Related description and report will be updated soon.
